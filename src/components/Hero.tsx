@@ -493,7 +493,6 @@ export function Hero() {
               loop
               playsInline
               className="w-full h-auto block"
-              poster="/aserva-logo.png"
             >
               <source src="/aserva-hero.mp4" type="video/mp4" />
             </video>
