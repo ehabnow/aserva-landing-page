@@ -82,16 +82,10 @@ function LiveInbox() {
       <div className="flex items-center justify-between mb-3 shrink-0">
         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Support Queue</span>
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <motion.span
-            key={totalCount}
-            initial={{ scale: 1.4, color: "#f87171" }}
-            animate={{ scale: 1, color: "#f87171" }}
-            transition={{ duration: 0.3 }}
-            className="text-[13px] font-extrabold text-red-400 tabular-nums"
-          >
+          <span className="w-2 h-2 rounded-full bg-red-500/80" />
+          <span className="text-[13px] font-extrabold text-red-400 tabular-nums transition-colors duration-300">
             {totalCount} unresolved
-          </motion.span>
+          </span>
         </div>
       </div>
 
@@ -107,9 +101,11 @@ function LiveInbox() {
             {tickets.map((t) => (
               <motion.div
                 key={t.id}
-                initial={{ opacity: 0, y: -28 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                layout="position"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                 className={`rounded-xl border ${t.urgent ? "border-red-600/40 bg-red-950/20" : "border-gray-700/30 bg-white/[0.02]"} px-3 py-2.5 flex items-start gap-3 shrink-0`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${t.urgent ? "bg-red-800/50 text-red-300" : "bg-gray-800/60 text-gray-300"}`}>
@@ -119,7 +115,7 @@ function LiveInbox() {
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[13px] font-bold text-white">{t.name}</span>
                     <span className={`text-[8px] font-bold uppercase tracking-wider border rounded px-1.5 py-0.5 ${t.tagColor}`}>{t.tag}</span>
-                    {t.urgent && <span className="text-[8px] font-bold text-red-400 animate-pulse">● URGENT</span>}
+                    {t.urgent && <span className="text-[8px] font-bold text-red-400">● URGENT</span>}
                   </div>
                   <p className="text-[11px] text-gray-400 leading-snug truncate">{t.message}</p>
                 </div>
@@ -139,7 +135,7 @@ function LiveInbox() {
       <div className="shrink-0 pt-2.5 border-t border-white/[0.05] flex items-center gap-2">
         <div className="flex gap-1 items-center">
           {[0, 150, 300].map((d) => (
-            <span key={d} className="w-1.5 h-1.5 rounded-full bg-gray-600 animate-bounce" style={{ animationDelay: `${d}ms` }} />
+            <span key={d} className="w-1.5 h-1.5 rounded-full bg-gray-600" style={{ opacity: 0.45 + d / 1000 }} />
           ))}
         </div>
         <span className="text-[10px] text-gray-600 italic">Agent is typing a response to ticket #1...</span>
@@ -172,12 +168,21 @@ function DashboardPreview() {
   const [resolutionCount, setResolutionCount] = useState(269);
   const tickRef = useRef(0);
   const mountedRef = useRef(true);
-  const isPreviewInView = useInView(previewRef, { once: true, margin: "200px" });
+  const timeoutRefs = useRef<number[]>([]);
+  const isPreviewInView = useInView(previewRef, { margin: "200px" });
 
   useEffect(() => {
     if (!isPreviewInView) return;
 
     mountedRef.current = true;
+
+    const scheduleTimeout = (callback: () => void, delay: number) => {
+      const timeoutId = window.setTimeout(() => {
+        timeoutRefs.current = timeoutRefs.current.filter((currentId) => currentId !== timeoutId);
+        callback();
+      }, delay);
+      timeoutRefs.current.push(timeoutId);
+    };
 
     const runCycle = () => {
       if (!mountedRef.current) return;
@@ -189,7 +194,7 @@ function DashboardPreview() {
       setActiveConversationIndex(conversationIndex);
       setProcessingId(conversation.id);
 
-      window.setTimeout(() => {
+      scheduleTimeout(() => {
         if (!mountedRef.current) return;
 
         setProcessingId(null);
@@ -198,7 +203,7 @@ function DashboardPreview() {
         setResolutionCount((currentResolutionCount) => currentResolutionCount + 1);
         tickRef.current += 1;
 
-        window.setTimeout(() => {
+        scheduleTimeout(() => {
           if (!mountedRef.current) return;
           setResolvedIds((currentResolvedIds) =>
             currentResolvedIds.filter((resolvedId) => resolvedId !== conversation.id)
@@ -212,6 +217,8 @@ function DashboardPreview() {
 
     return () => {
       mountedRef.current = false;
+      timeoutRefs.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      timeoutRefs.current = [];
       window.clearInterval(cycleTimer);
     };
   }, [isPreviewInView]);
@@ -244,14 +251,14 @@ function DashboardPreview() {
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
             <div className="flex justify-between text-[10px]">
               <span className="text-gray-500">AI Resolutions</span>
-              <motion.span key={resolutionCount} className="font-bold text-emerald-400">
+              <span className="font-bold text-emerald-400 tabular-nums transition-colors duration-300">
                 {resolutionCount} / 500
-              </motion.span>
+              </span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-              <motion.div
-                animate={{ width: `${(resolutionCount / 500) * 100}%` }}
-                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-400"
+              <div
+                style={{ width: `${(resolutionCount / 500) * 100}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-400 transition-[width] duration-500 ease-out"
               />
             </div>
           </div>
@@ -318,31 +325,22 @@ function DashboardPreview() {
         </div>
         <div className="relative flex-1 overflow-hidden px-4 py-4">
           <p className="text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em] mb-3">AI Action Log</p>
-          <AnimatePresence mode="wait">
-            {processingId && (
-              <motion.div
-                key="processing"
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="mb-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 flex gap-3"
-              >
-                <motion.span
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                  className="mt-0.5 h-4 w-4 rounded-full border-2 border-gray-700 border-t-violet-400 shrink-0"
-                />
-                <div>
+          <div
+            aria-hidden={!processingId}
+            className={`mb-2 min-h-[58px] rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 flex gap-3 transition-opacity duration-300 ${
+              processingId ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <span className="mt-0.5 h-4 w-4 rounded-full border-2 border-gray-700 border-t-violet-400 shrink-0 animate-spin" />
+            <div>
                   <p className="text-[10px] text-gray-400 font-medium">Reading order context...</p>
                   <p className="text-[8px] text-gray-600">Policy match · executing action</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+            </div>
+          </div>
           <div className="space-y-2">
-            {actionLog.map((entry, actionIndex) => (
+            {actionLog.map((entry) => (
               <div
-                key={`${entry.action}-${actionIndex}`}
+                key={entry.action}
                 className="rounded-xl border border-emerald-500/20 bg-emerald-950/10 px-3 py-2.5 transition-opacity duration-300"
               >
                 <p className={`text-[10px] font-bold ${entry.color}`}>{entry.action}</p>

@@ -1,9 +1,29 @@
 "use client";
 
 import { FadeUp, CountUp, TiltCard } from "./motion";
-import { motion } from "motion/react";
+import { useEffect, useRef } from "react";
+import { motion, useInView } from "motion/react";
 
 export function Hero() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isVideoInView = useInView(videoRef, { margin: "200px" });
+
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video) return;
+
+    if (!isVideoInView) {
+      video.pause();
+      return;
+    }
+
+    void video.play().catch((error: unknown) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.debug("Hero video autoplay was blocked:", { error });
+    });
+  }, [isVideoInView]);
+
   return (
     <section className="relative pt-32 pb-20 min-h-screen flex flex-col justify-center overflow-hidden">
       {/* ── Hero in-section glows ── */}
@@ -60,6 +80,7 @@ export function Hero() {
         <FadeUp delay={0.55}>
           <div className="mt-14 mb-2 mx-auto max-w-[920px] aspect-video relative rounded-[1.5rem] border border-white/[0.1] overflow-hidden shadow-[0_0_100px_rgba(109,40,217,0.12),0_40px_100px_rgba(0,0,0,0.8)]">
             <video
+              ref={videoRef}
               autoPlay
               muted
               loop
