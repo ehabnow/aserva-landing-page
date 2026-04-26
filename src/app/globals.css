@@ -38,6 +38,10 @@ body {
   color: white;
 }
 
+section[id] {
+  scroll-margin-top: 96px;
+}
+
 /* Premium scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: var(--background); }

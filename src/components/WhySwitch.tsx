@@ -478,7 +478,35 @@ export function WhySwitch() {
                 </AnimatePresence>
               </div>
 
-              {/* RIGHT — fixed height panel, clips its own overflow */}
+              {/* MOBILE VISUAL */}
+              <div className="md:hidden relative h-[320px] rounded-2xl overflow-hidden border border-white/[0.06] bg-[#070707]">
+                <AnimatePresence mode="wait">
+                  {activeTab === "legacy" ? (
+                    <motion.div
+                      key="mobile-inbox"
+                      className="absolute inset-4"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                    >
+                      <LiveInbox />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="mobile-dashboard-preview"
+                      className="absolute inset-0 origin-top-left scale-[0.68] w-[147%] h-[147%]"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                    >
+                      <DashboardPreview />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <div className="hidden md:block relative rounded-2xl overflow-hidden border border-white/[0.06] bg-[#070707] p-4 h-full">
                 <AnimatePresence mode="wait">
                   {activeTab === "legacy" ? (
