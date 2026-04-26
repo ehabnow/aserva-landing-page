@@ -149,6 +149,214 @@ function LiveInbox() {
 }
 
 // ─── aserva live resolve feed ─────────────────────────────────────────────────
+const DASHBOARD_CONVERSATIONS = [
+  { id: 1, name: "Emma R.", subject: "Package arrived damaged — need refund", tag: "REFUND", avatar: "E", time: "just now" },
+  { id: 2, name: "James M.", subject: "Wrong size delivered, need exchange", tag: "EXCHANGE", avatar: "J", time: "1 min ago" },
+  { id: 3, name: "Layla K.", subject: "Order hasn't shipped after 10 days", tag: "SHIPPING", avatar: "L", time: "3 min ago" },
+  { id: 4, name: "Sven T.", subject: "Charged twice for the same item", tag: "BILLING", avatar: "S", time: "5 min ago" },
+];
+
+const DASHBOARD_ACTIONS = [
+  { action: "Refund processed", detail: "$94.00 returned to original card", color: "text-emerald-400" },
+  { action: "Exchange created", detail: "Medium dispatched · Return label emailed", color: "text-violet-400" },
+  { action: "Duplicate voided", detail: "Second charge reversed · Card credited", color: "text-violet-400" },
+  { action: "Shipment investigated", detail: "Carrier notified · ETA updated", color: "text-emerald-400" },
+];
+
+function DashboardPreview() {
+  const [activeConversationIndex, setActiveConversationIndex] = useState(0);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [resolvedIds, setResolvedIds] = useState<number[]>([]);
+  const [actionLog, setActionLog] = useState<typeof DASHBOARD_ACTIONS>([]);
+  const [resolutionCount, setResolutionCount] = useState(269);
+  const tickRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    const runCycle = () => {
+      if (!mountedRef.current) return;
+
+      const conversationIndex = tickRef.current % DASHBOARD_CONVERSATIONS.length;
+      const conversation = DASHBOARD_CONVERSATIONS[conversationIndex];
+      const action = DASHBOARD_ACTIONS[tickRef.current % DASHBOARD_ACTIONS.length];
+
+      setActiveConversationIndex(conversationIndex);
+      setProcessingId(conversation.id);
+
+      window.setTimeout(() => {
+        if (!mountedRef.current) return;
+
+        setProcessingId(null);
+        setResolvedIds((currentResolvedIds) => [...currentResolvedIds, conversation.id]);
+        setActionLog((currentActionLog) => [action, ...currentActionLog].slice(0, 4));
+        setResolutionCount((currentResolutionCount) => currentResolutionCount + 1);
+        tickRef.current += 1;
+
+        window.setTimeout(() => {
+          if (!mountedRef.current) return;
+          setResolvedIds((currentResolvedIds) =>
+            currentResolvedIds.filter((resolvedId) => resolvedId !== conversation.id)
+          );
+        }, 1500);
+      }, 1200);
+    };
+
+    runCycle();
+    const cycleTimer = window.setInterval(runCycle, 3400);
+
+    return () => {
+      mountedRef.current = false;
+      window.clearInterval(cycleTimer);
+    };
+  }, []);
+
+  const activeConversation = DASHBOARD_CONVERSATIONS[activeConversationIndex];
+
+  return (
+    <div className="absolute inset-0 flex overflow-hidden bg-[#0d0d10] text-white">
+      <div className="w-[34%] min-w-[140px] border-r border-white/[0.06] bg-[#09090c] flex flex-col">
+        <div className="px-3 py-3 border-b border-white/[0.05] flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/aserva-icon.png" alt="aserva" className="w-6 h-6 object-contain invert" />
+          <span className="text-[13px] font-bold">aserva</span>
+        </div>
+        <div className="flex-1 px-2 py-3 space-y-1">
+          {["Dashboard", "Launch", "Inbox", "Knowledge", "Supervision", "Automations", "Analytics"].map((item) => (
+            <div
+              key={item}
+              className={`px-3 py-2 rounded-lg text-[11px] font-medium ${
+                item === "Inbox"
+                  ? "bg-violet-600/20 text-violet-300 border border-violet-500/20"
+                  : "text-gray-500"
+              }`}
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+        <div className="p-3">
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
+            <div className="flex justify-between text-[10px]">
+              <span className="text-gray-500">AI Resolutions</span>
+              <motion.span key={resolutionCount} className="font-bold text-emerald-400">
+                {resolutionCount} / 500
+              </motion.span>
+            </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+              <motion.div
+                animate={{ width: `${(resolutionCount / 500) * 100}%` }}
+                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-400"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-[31%] min-w-[150px] border-r border-white/[0.06] flex flex-col">
+        <div className="px-3 py-3 border-b border-white/[0.05]">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] font-bold">Support Inbox</span>
+            <span className="text-[9px] font-bold text-violet-300 bg-violet-500/15 border border-violet-500/30 rounded-full px-1.5 py-0.5">
+              {DASHBOARD_CONVERSATIONS.length - resolvedIds.length} open
+            </span>
+          </div>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          {DASHBOARD_CONVERSATIONS.map((conversation, conversationIndex) => {
+            const isActive = conversationIndex === activeConversationIndex;
+            const isResolved = resolvedIds.includes(conversation.id);
+            const isProcessing = processingId === conversation.id;
+
+            return (
+              <motion.div
+                key={conversation.id}
+                animate={{
+                  opacity: isResolved ? 0.3 : 1,
+                  backgroundColor: isActive ? "rgba(109,40,217,0.12)" : "transparent",
+                }}
+                className="border-l-2 border-b border-white/[0.04] px-3 py-2.5"
+                style={{ borderLeftColor: isActive ? "rgb(139,92,246)" : "transparent" }}
+              >
+                <div className="flex gap-2">
+                  <div className="w-7 h-7 rounded-full bg-violet-800/60 text-violet-200 flex items-center justify-center text-[11px] font-bold shrink-0">
+                    {conversation.avatar}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-[11px] font-bold truncate">{conversation.name}</span>
+                      <span className="text-[8px] text-gray-600 shrink-0">{conversation.time}</span>
+                    </div>
+                    <p className="text-[9px] text-gray-500 truncate">{conversation.subject}</p>
+                    <div className="mt-1 flex gap-1">
+                      <span className="text-[7px] font-bold text-gray-600 border border-gray-700/50 rounded px-1 py-0.5">
+                        {conversation.tag}
+                      </span>
+                      {isProcessing && <span className="text-[7px] font-bold text-violet-400">AI resolving...</span>}
+                      {isResolved && <span className="text-[7px] font-bold text-emerald-400">Resolved</span>}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="px-4 py-3 border-b border-white/[0.05] flex items-center justify-between">
+          <div>
+            <p className="text-[12px] font-bold">{activeConversation.name}</p>
+            <p className="text-[9px] text-gray-500 truncate max-w-[210px]">{activeConversation.subject}</p>
+          </div>
+          <span className="text-[9px] font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 rounded-full px-2 py-1">
+            {processingId ? "AI Working..." : "AI Resolved"}
+          </span>
+        </div>
+        <div className="relative flex-1 overflow-hidden px-4 py-4">
+          <p className="text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em] mb-3">AI Action Log</p>
+          <AnimatePresence mode="wait">
+            {processingId && (
+              <motion.div
+                key="processing"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mb-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 flex gap-3"
+              >
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                  className="mt-0.5 h-4 w-4 rounded-full border-2 border-gray-700 border-t-violet-400 shrink-0"
+                />
+                <div>
+                  <p className="text-[10px] text-gray-400 font-medium">Reading order context...</p>
+                  <p className="text-[8px] text-gray-600">Policy match · executing action</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <div className="space-y-2">
+            {actionLog.map((entry, actionIndex) => (
+              <motion.div
+                key={`${entry.action}-${actionIndex}`}
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="rounded-xl border border-emerald-500/20 bg-emerald-950/10 px-3 py-2.5"
+              >
+                <p className={`text-[10px] font-bold ${entry.color}`}>{entry.action}</p>
+                <p className="text-[9px] text-gray-500 truncate">{entry.detail}</p>
+              </motion.div>
+            ))}
+          </div>
+          <div className="absolute bottom-0 inset-x-0 h-14 bg-gradient-to-t from-[#0d0d10] to-transparent pointer-events-none" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const legacyStats = [
   { value: "72h",   label: "Avg. first response",  sub: "while customer waits" },
   { value: "4×",    label: "More refunds",          sub: "from slow resolution" },
@@ -288,22 +496,14 @@ export function WhySwitch() {
                     </motion.div>
                   ) : (
                     <motion.div
-                      key="hero-video"
+                      key="dashboard-preview"
                       className="absolute inset-0"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.4 }}
                     >
-                      <video
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        className="h-full w-full object-cover"
-                      >
-                        <source src="/aserva-hero.mp4" type="video/mp4" />
-                      </video>
+                      <DashboardPreview />
                     </motion.div>
                   )}
                 </AnimatePresence>
