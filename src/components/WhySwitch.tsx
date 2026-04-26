@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { FadeUp, CountUp } from "./motion";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useInView } from "motion/react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Ticket {
@@ -164,6 +164,7 @@ const DASHBOARD_ACTIONS = [
 ];
 
 function DashboardPreview() {
+  const previewRef = useRef<HTMLDivElement>(null);
   const [activeConversationIndex, setActiveConversationIndex] = useState(0);
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [resolvedIds, setResolvedIds] = useState<number[]>([]);
@@ -171,8 +172,11 @@ function DashboardPreview() {
   const [resolutionCount, setResolutionCount] = useState(269);
   const tickRef = useRef(0);
   const mountedRef = useRef(true);
+  const isPreviewInView = useInView(previewRef, { once: true, margin: "200px" });
 
   useEffect(() => {
+    if (!isPreviewInView) return;
+
     mountedRef.current = true;
 
     const runCycle = () => {
@@ -210,12 +214,12 @@ function DashboardPreview() {
       mountedRef.current = false;
       window.clearInterval(cycleTimer);
     };
-  }, []);
+  }, [isPreviewInView]);
 
   const activeConversation = DASHBOARD_CONVERSATIONS[activeConversationIndex];
 
   return (
-    <div className="absolute inset-0 flex overflow-hidden bg-[#0d0d10] text-white">
+    <div ref={previewRef} className="absolute inset-0 flex overflow-hidden bg-[#0d0d10] text-white">
       <div className="w-[34%] min-w-[140px] border-r border-white/[0.06] bg-[#09090c] flex flex-col">
         <div className="px-3 py-3 border-b border-white/[0.05] flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -270,13 +274,11 @@ function DashboardPreview() {
             const isProcessing = processingId === conversation.id;
 
             return (
-              <motion.div
+              <div
                 key={conversation.id}
-                animate={{
-                  opacity: isResolved ? 0.3 : 1,
-                  backgroundColor: isActive ? "rgba(109,40,217,0.12)" : "transparent",
-                }}
-                className="border-l-2 border-b border-white/[0.04] px-3 py-2.5"
+                className={`border-l-2 border-b border-white/[0.04] px-3 py-2.5 transition-colors duration-300 ${
+                  isActive ? "bg-violet-900/10" : ""
+                } ${isResolved ? "opacity-30" : "opacity-100"}`}
                 style={{ borderLeftColor: isActive ? "rgb(139,92,246)" : "transparent" }}
               >
                 <div className="flex gap-2">
@@ -298,7 +300,7 @@ function DashboardPreview() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
@@ -339,15 +341,13 @@ function DashboardPreview() {
           </AnimatePresence>
           <div className="space-y-2">
             {actionLog.map((entry, actionIndex) => (
-              <motion.div
+              <div
                 key={`${entry.action}-${actionIndex}`}
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="rounded-xl border border-emerald-500/20 bg-emerald-950/10 px-3 py-2.5"
+                className="rounded-xl border border-emerald-500/20 bg-emerald-950/10 px-3 py-2.5 transition-opacity duration-300"
               >
                 <p className={`text-[10px] font-bold ${entry.color}`}>{entry.action}</p>
                 <p className="text-[9px] text-gray-500 truncate">{entry.detail}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
           <div className="absolute bottom-0 inset-x-0 h-14 bg-gradient-to-t from-[#0d0d10] to-transparent pointer-events-none" />
