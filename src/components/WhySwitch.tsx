@@ -16,15 +16,6 @@ interface Ticket {
   urgent: boolean;
 }
 
-type ResolvedEntry = {
-  uid: number;
-  name: string;
-  action: string;
-  detail: string;
-  time: string;
-  processing: boolean;
-};
-
 // ─── Data pools ───────────────────────────────────────────────────────────────
 const TICKET_POOL: Omit<Ticket, "id" | "waitMins">[] = [
   { name: "Emma R.",  avatar: "E", message: "Where is my order?! 12 days and no update at all", tag: "SHIPPING", tagColor: "text-orange-400 border-orange-500/30 bg-orange-950/20", urgent: true  },
@@ -36,17 +27,6 @@ const TICKET_POOL: Omit<Ticket, "id" | "waitMins">[] = [
   { name: "Chen W.",  avatar: "C", message: "Refund promised 2 weeks ago still not received",    tag: "REFUND",   tagColor: "text-red-400 border-red-500/30 bg-red-950/20",       urgent: true  },
   { name: "Anya V.",  avatar: "A", message: "Need to cancel my order before it ships today",     tag: "CANCEL",   tagColor: "text-yellow-400 border-yellow-500/30 bg-yellow-950/20", urgent: false },
   { name: "Raj S.",   avatar: "R", message: "Tracking says delivered but nothing at my door",    tag: "SHIPPING", tagColor: "text-orange-400 border-orange-500/30 bg-orange-950/20", urgent: true  },
-];
-
-const RESOLVE_POOL = [
-  { name: "Emma R.",  action: "Refund processed",    detail: "$89.00 returned to card",        time: "1.8s" },
-  { name: "James M.", action: "Exchange created",    detail: "Medium dispatched, return label sent", time: "3.2s" },
-  { name: "Layla K.", action: "Refund + apology",    detail: "Full refund + 15% next order",   time: "2.1s" },
-  { name: "Sven T.",  action: "Duplicate voided",    detail: "Second charge reversed instantly", time: "4.0s" },
-  { name: "Maya P.",  action: "Return authorised",   detail: "Prepaid label emailed to customer", time: "2.6s" },
-  { name: "Omar D.",  action: "Discount applied",    detail: "Code credited retroactively",    time: "1.5s" },
-  { name: "Chen W.",  action: "Refund resent",       detail: "Confirmed to original payment",  time: "3.7s" },
-  { name: "Anya V.",  action: "Order cancelled",     detail: "Immediate cancellation, refunded", time: "0.9s" },
 ];
 
 // ─── Live backlog (Legacy tab) ─────────────────────────────────────────────────
@@ -169,150 +149,6 @@ function LiveInbox() {
 }
 
 // ─── aserva live resolve feed ─────────────────────────────────────────────────
-function AservaFeed() {
-  const [items, setItems] = useState<ResolvedEntry[]>([]);
-  const idxRef = useRef(0);
-  const uidRef = useRef(0);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-
-    const addAndResolve = () => {
-      if (!mountedRef.current) return;
-      const pool = RESOLVE_POOL[idxRef.current % RESOLVE_POOL.length];
-      idxRef.current += 1;
-      const uid = ++uidRef.current;
-
-      // Step 1: add as "processing"
-      const processingEntry: ResolvedEntry = { ...pool, uid, processing: true };
-      setItems((prev) =>
-        [processingEntry, ...prev].filter((x): x is ResolvedEntry => !!x).slice(0, 5)
-      );
-
-      // Step 2: flip to "resolved" after 1.2s
-      setTimeout(() => {
-        if (!mountedRef.current) return;
-        setItems((prev) =>
-          prev.map((e) => (e.uid === uid ? { ...e, processing: false } : e))
-        );
-      }, 1200);
-    };
-
-    addAndResolve();
-    const t = setInterval(addAndResolve, 2200);
-    return () => {
-      mountedRef.current = false;
-      clearInterval(t);
-    };
-  }, []);
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3 shrink-0">
-        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">aserva AI</span>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[12px] font-bold text-emerald-400">Live resolving</span>
-        </div>
-      </div>
-
-      {/* Fixed-height resolved feed */}
-      <div className="flex-1 overflow-hidden relative">
-        <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-[#070707] to-transparent z-10 pointer-events-none" />
-        <div className="flex flex-col gap-2 h-full">
-          <AnimatePresence initial={false}>
-            {items.filter((r): r is ResolvedEntry => !!r).map((r) => (
-              <motion.div
-                key={r.uid}
-                layout
-                initial={{ opacity: 0, x: 24 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className={`rounded-xl border shrink-0 px-3 py-2.5 flex items-center gap-3 transition-colors duration-500 ${
-                  r.processing
-                    ? "border-gray-700/40 bg-white/[0.02]"
-                    : "border-emerald-500/30 bg-emerald-950/20"
-                }`}
-              >
-                {/* Icon: spinner → checkmark */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold shrink-0 transition-colors duration-500 ${r.processing ? "bg-gray-800/50" : "bg-emerald-500/20"}`}>
-                  {r.processing ? (
-                    <motion.span
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                      className="block w-4 h-4 border-2 border-gray-500 border-t-gray-300 rounded-full"
-                    />
-                  ) : (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                      className="text-emerald-400 text-[15px]"
-                    >
-                      ✓
-                    </motion.span>
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[13px] font-bold text-white">{r.name}</span>
-                    <AnimatePresence mode="wait">
-                      {r.processing ? (
-                        <motion.span
-                          key="processing"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="text-[8px] font-bold uppercase tracking-wider text-gray-500 border border-gray-700/40 rounded px-1.5 py-0.5"
-                        >
-                          Processing…
-                        </motion.span>
-                      ) : (
-                        <motion.span
-                          key="done"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="text-[8px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/30 rounded px-1.5 py-0.5"
-                        >
-                          {r.action}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                  <p className="text-[11px] text-gray-400 leading-snug truncate">
-                    {r.processing ? "AI reading order history…" : r.detail}
-                  </p>
-                </div>
-
-                <AnimatePresence mode="wait">
-                  {!r.processing && (
-                    <motion.span
-                      key="time"
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-[11px] font-bold text-emerald-400 shrink-0 tabular-nums"
-                    >
-                      in {r.time}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      <div className="shrink-0 pt-2.5 border-t border-white/[0.05]">
-        <p className="text-[10px] text-gray-600 italic">No queue. No wait. Every contact resolved on arrival.</p>
-      </div>
-    </div>
-  );
-}
-
-// ─── Pain stats ───────────────────────────────────────────────────────────────
 const legacyStats = [
   { value: "72h",   label: "Avg. first response",  sub: "while customer waits" },
   { value: "4×",    label: "More refunds",          sub: "from slow resolution" },
@@ -452,14 +288,22 @@ export function WhySwitch() {
                     </motion.div>
                   ) : (
                     <motion.div
-                      key="feed"
-                      className="absolute inset-4"
+                      key="hero-video"
+                      className="absolute inset-0"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.4 }}
                     >
-                      <AservaFeed />
+                      <video
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="h-full w-full object-cover"
+                      >
+                        <source src="/aserva-hero.mp4" type="video/mp4" />
+                      </video>
                     </motion.div>
                   )}
                 </AnimatePresence>
