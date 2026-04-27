@@ -72,10 +72,13 @@ export function Navbar() {
 
         {/* Mobile Toggle */}
         <button
+          type="button"
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden text-white p-2"
+          className="md:hidden text-white p-2 rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             {mobileOpen ? <path d="M18 6L6 18M6 6l12 12" /> : <path d="M4 6h16M4 12h16M4 18h16" />}
           </svg>
         </button>
@@ -88,7 +91,7 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-[#050505]/95 backdrop-blur-2xl border-b border-white/[0.05]"
+            className="md:hidden bg-[#050505] backdrop-blur-2xl border-b border-white/[0.05] shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
           >
             <div className="px-6 py-4 flex flex-col gap-3">
               {navLinks.map((link) => (
