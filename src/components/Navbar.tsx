@@ -28,11 +28,13 @@ export function Navbar() {
       transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-[#050505]/70 backdrop-blur-2xl border-b border-white/[0.05]"
+          ? "bg-[#050505]/55 backdrop-blur-2xl border-b border-white/[0.05]"
           : "bg-transparent"
       }`}
     >
-      <div className="max-w-[1200px] mx-auto px-6 h-20 flex items-center justify-between">
+      <div className={`max-w-[1200px] mx-auto px-6 flex items-center justify-between transition-[height] duration-500 ${
+        scrolled ? "h-16" : "h-20"
+      }`}>
         {/* Logo */}
         <a href="#" className="flex items-center gap-3 group">
           <img src="/aserva-logo.png" alt="aserva logo" className="w-8 h-8 rounded-md" />
